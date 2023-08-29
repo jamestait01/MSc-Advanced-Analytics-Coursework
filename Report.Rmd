@@ -1,6 +1,6 @@
 ---
 title: "Spatio-temporal analysis of crimes against women in Uttar Pradesh, India"
-author: "By 01711052"
+author: "By James"
 date: "03/04/2023"
 output:
   html_document:
