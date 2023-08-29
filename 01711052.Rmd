@@ -1,0 +1,503 @@
+---
+title: "Spatio-temporal analysis of crimes against women in Uttar Pradesh, India"
+author: "By 01711052"
+date: "03/04/2023"
+output:
+  html_document:
+    toc: no
+    toc_float: no
+  pdf_document:
+    toc: no
+bibliography: biblio.bib
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+```{=tex}
+\pagenumbering{gobble} 
+\pagenumbering{arabic}
+```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.align = "center",class.source="klippy")
+```
+
+```{r klippy, echo=FALSE, include=TRUE}
+klippy::klippy(position = c('top', 'right'),color = 'darkred',
+               tooltip_message = 'Click to copy', tooltip_success = 'Done')
+```
+
+```{r eval=TRUE, echo=FALSE}
+
+# Load the libraries you will use for the mini-project report
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(viridis)
+library(spData)
+library(sf)
+library(dplyr)
+library(RColorBrewer)
+library(INLA)
+library(spdep)
+library(patchwork)
+```
+
+### Abstract
+
+In 2017, Uttar Pradesh was the Indian state with the highest percentage of overall crimes against women (CAW). Rape and dowry deaths are common crimes in India. However, few studies have investigated the prevalence of these 2 crimes within the 70 districts of Uttar Pradesh over space and time. This study aimed to analyze spatio-temporal patterns and trends of rape incidence and dowry deaths in the districts of Uttar Pradesh during 2001-2014. The observed incidences of rape and dowry deaths, along with the population count of females between the ages of 15 and 49 years in each district were obtained from the National Crime Record Bureau. Standardized incidence and mortality rates were calculated and mapped for each district. A Bayesian spatio-temporal model with type I interaction was fitted to estimate the unknown relative risk of rape and dowry deaths for each area, accounting for spatial and temporal variation. The final model revealed excess risk of rape and dowry deaths in Western districts, and an increase in these crimes over time since 2003. These findings can inform policymakers in designing targeted interventions to reduce crimes against women in Uttar Pradesh, specific to each district.
+
+### Introduction
+
+Uttar Pradesh is the most populated state in India, with the highest percentage of overall crimes against women (CAW), based on a 2017 report by the National Crime Records Bureau (NCRB). Crimes against women in India have been rising in recent years, in spite of an increase in literacy, education and economic growth [@Lolayekar2020]. Rape is the fourth most common CAW in India, and such a crime not only violates a woman's physical boundaries but also causes severe psychological trauma which can last an entire lifetime. On the other hand, dowry death is a crime that stems from the cultural practice of dowry, where a bride's family is expected to offer expensive gifts to the groom's family during the wedding. If the bride's family fails to fulfill the groom's family's demands, the bride is often subjected to harassment, torture, and murder, known as 'dowry deaths'. 
+
+In recent years, several news stories have emerged of heinous CAW in India, with the media attention resulting in new laws aimed at reducing the incidence of CAW [@Lolayekar2020]. However, the NCRB has recently revealed that reported CAW are still on the rise. In particular, a recent NCRP report revealed that Uttar Pradesh witnessed a rape every 3 hours in 2021 [@Pradhan2022]. However, Uttar Pradesh is composed of 75 different districts, each one varied in their population and socioeconomic status, with differing crime statistics. The aim of this study was to perform a spatio-temporal analysis of rape incidence and dowry deaths in the districts of Uttar Pradesh during the period 2001--2014 to identify spatial patterns and temporal trends. 
+
+### Methods
+
+#### Data
+
+Observed incidences of rape and dowry deaths in the 70 districts, along with a linear interpolated population count of females aged between 15 and 49 years old in each district of Uttar Pradesh from 2001-2014 were obtained from the National Crime Record Bureau.
+To calculate the expected number of rape or dowry deaths for each year, the total sum of rape incidences and dowry deaths was divided by the total population count to calculate the overall incidence rate for rape and dowry deaths respectively.
+Then, let $Q$ be the overall rape incidence rate and $P_{k,t}$ the population count for the k-th district at year t.
+The expected number of rape cases $E$ in the k-th district at time t is thus:
+
+$$E_{k,t} = QP_{k,t}$$ A similar equation was used to calculate the expected number of dowry deaths for each year.
+
+Standardised rape incidence rates (SIR) and standardised mortality rates (SMR) for dowry deaths for each district were then calculated for each year by dividing the observed number of rapes/dowry deaths in each year by the expected number.
+An SMR/SIR \< 1 equates to a lower number of cases than expected, whereas a value \> 1 indicates a greater number of cases than expected.
+
+#### Exploratory analysis
+
+Plots were generated using raw SMR and SIR values mapped to each district, uncorrected for spatial or temporal dependencies.
+Additionally, a Moran's I test was conducted to assess spatial autocorrelation.
+As this test cannot measure temporal autocorrelation, an overall SMR/SIR was calculated for each district, with neighbours defined using the queen's criterion in a binary distance matrix.
+Statistical significance was defined as p\<0.05.
+
+#### Spatio-temporal model
+
+To account for spatial and temporal variation, 5 different spatio-temporal models were generated to estimate the unknown relative risk (RR) of rapes and dowry deaths in each district for each year (Supplementary Table 1/2). The model with the lowest Watanabe-Akaike information criterion (WAIC) was used as the final model and is presented herein. 
+
+Let $y_{k,t}$ indicate the number of rapes/dowry deaths for the k-th district at time t.
+Such counts can be modeled by a Poisson distribution with: $y_{k,t}$ \~ $Poisson(E_{k,t}\rho_{k,t})$ where $E_{k,t}$ represents the expected number of rapes/dowry deaths in district k and time t,  $\rho_{k,t}$ represents the unknown RR of rape cases/dowry deaths for district k at time t.
+
+The log-transformed rates were then modeled using a Besag-York-Mollie 2 (BYM2) spatial model [@Besag1991],[@Simpson2017] to account for both structured and unstructured spatial random effects, with additional terms for temporal random effects and a type 1 interaction between space-time, as shown below:
+
+$$log(\rho_{k,t}) = b_0 + b_k + \gamma_t + \psi_t + \delta_{k,t}$$
+
+where $b_0$ is the overall log RR of rape cases or dowry deaths across all districts and yeara, $b_k$ is the district-specific random effect, $\gamma_t$ is a temporally structured random effect, $\psi_t$ is a temporally unstructured random effect and $\delta_{k,t}$ is the interaction between district and time, allowing the temporal effect to differ across districts.
+$b_k$ consisted of structured and unstructured spatial random effects $u_k$ and $v_k$ specified by the BYM2 model, with penalized complexity (PC) prior parameters as recommended by [@Moraga2019].
+$\gamma_t$ was modeled with a random walk prior of order 1 and the same aforementioned PC prior parameters.
+$\psi_t$ was modeled with a normally distributed prior $\psi_t$ \~ $N(0,\sigma^2_\psi)$.
+$\delta_{k,t}$ was assigned an unstructured,exchangeable normal prior.
+
+To investigate the excess risk of rape or dowry deaths for each area, the spatial residual RR's for rape and dowry deaths were mapped, and the exceedance probability of each area was calculated using a log-residual threshold of 0 (or residual\>1). Additionally, the temporal residual RR's were plotted for each year to assess temporal risk of rape and dowry deaths. 
+
+### Results
+
+```{r,echo=FALSE}
+#loads data
+load("~/Documents/MSc/Advanced Analytics/ICA/DATA_SCIENTIFIC_PROJECTS/DS1_CrimeUttarPradesh/CrimeUttarPradesh.RData")
+carto_up_sf =  st_as_sf(carto_up) # from sp to sf object
+up_SMR = left_join(carto_up_sf, data) #joins sf object to data
+SMR_nb = poly2nb(carto_up_sf, queen=TRUE) #creates neighbours object
+
+nb2INLA("SMR.graph",SMR_nb)
+SMR.adj = paste(getwd(),"/SMR.graph",sep="")
+```
+
+Figures 1 and 2 display raw SIR and SMR values across each district for each year, revealing a spatial pattern to the data with neighboring areas experiencing similar SIR/SMR values.
+Additionally, the districts with higher SIR values than expected tended to be the same districts housing higher SMR values than expected.
+Furthermore, the SMR and SIR values clearly change over time for each district, indicative of a temporal effect.
+
+```{r,echo=FALSE, fig.height=4, fig.cap="Figure 1: Raw standardised incidence rate (SIR) for rape cases in each district for each year, colour-coded.",include=TRUE}
+ggplot(up_SMR) + geom_sf(aes(fill = smr_rape)) +
+  facet_wrap(~year, dir = "h", ncol = 5) +
+  ggtitle("Raw rape SIR") + theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    plot.title = element_text(hjust = 0.5,size=15)# center the plot title and increase size
+  ) +
+  scale_fill_gradient2(
+    midpoint = 1, low = "blue", mid = "white", high = "red",name="SIR"
+  )
+```
+
+```{r,echo=FALSE, fig.height=4, fig.cap="Figure 2: Raw standardised mortality rate (SMR) for dowry deaths in each district for each year, colour-coded.",include=TRUE}
+ggplot(up_SMR) + geom_sf(aes(fill = smr_dowry)) +
+  facet_wrap(~year, dir = "h", ncol = 5) +
+  ggtitle("Raw dowry SMR") + theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    plot.title = element_text(hjust = 0.5,size=15) # center the plot title and increase title size
+  ) +
+  scale_fill_gradient2(
+    midpoint = 1, low = "blue", mid = "white", high = "red",name="SMR"
+  )
+```
+To further investigate potential spatial effects contributing to the SIR and SMR, a Moran's I test was conducted. Both p-values were \<0.05, confirming the visual observations that both SMR and SIR values exhibit spatial correlation.
+```{r,echo=FALSE}
+#this code sums up the total number of observed and expected cases of rape and dowry, for each area, before calculating the overall SMR and SIR, this is so Moran's I test can be done to measure overall spatial correlation and not just for one year.
+SMR_Data_agg = data %>% group_by(ID_area) %>%
+  summarize(observed_dowry=sum(dowry),expected_dowry=sum(e_dowry),observed_rape = sum(rape),
+            expected_rape = sum(e_rape)) %>%
+                dplyr::rename(O_dowry = observed_dowry, E_dowry = expected_dowry,
+                              O_rape = observed_rape, E_rape = expected_rape) 
+SMR_Data_agg = SMR_Data_agg %>% mutate(SMR_rape = O_rape/E_rape,SMR_dowry = O_dowry/E_dowry) 
+```
+
+```{r,echo=FALSE,include=FALSE}
+#calculate moran's I for rape SIR and dowry SMR 
+SMR_nb_matrix = nb2listw(SMR_nb, style="W")#converts neighbourhood list to matrix
+rape_moran = moran.test(SMR_Data_agg$SMR_rape, SMR_nb_matrix, zero.policy=TRUE)
+dowry_moran = moran.test(SMR_Data_agg$SMR_dowry,SMR_nb_matrix,zero.policy=TRUE)
+rape_moran
+dowry_moran
+```
+The spatio-temporal model for rape returned a mean RR of 0.83 $\pm$ 1.02 standard deviation (SD), which represents the overall RR in Uttar Pradesh over the 14 year period.
+The 95% credible interval was 0.794 - 0.873.
+For the dowry deaths model, the log intercept was 0.94 $\pm$ 1.02 SD and a 95% credible interval of 0.91 - 0.97.
+
+Figure 3A and 3C reveal the residual RRs for rape and dowry deaths for each area, which can be used to determine unusual elevation of disease risks.
+A value lower than 1 reveals the RR is lower than the average RR during the study.
+In contrast, a value larger than 1 indicates the RR is greater than the average.
+Consequently, districts with residuals greater than 1 possess a greater risk of rape or dowry deaths relative to the average.
+Figure 3A and Figure 3C demonstrate somewhat similar results - eastern Uttar Pradesh appears to have lower RR's of both rapes and dowry deaths compared to the West, which has a large number of districts with residuals greater than 1, indicative of an increased risk of both rape and dowry deaths.
+
+Figure 3B and 3D reveal the posterior probabilities of the residual RR's being greater than 1.
+As expected, districts with very low posterior probabilities are the same regions as in Figure 3A/3C with residual RR's lower than 1.
+In contrast, the districts with high posterior probabilities are the same districts in Figure 3A/3C with residual RR's larger than 1.
+
+```{r,echo=FALSE,include=FALSE}
+#Join the data with the shapefile so the order of the shapefile is maintained.  
+up_SMR_ST = left_join(carto_up_sf, data, by="ID_area")
+#creates duplicate year column to model as unstructured random effect
+up_SMR_ST$ID_year2 <- up_SMR_ST$ID_year
+
+#make the model for rape and dowry with interaction I
+rape_ST_intI = rape ~ f(ID_area, model="bym2", graph=SMR.adj,
+                            hyper=list(prec = list(
+                            prior = "pc.prec",
+                            param = c(0.5 / 0.31, 0.01)),
+                            phi = list(
+                            prior = "pc",
+                            param = c(0.5, 2 / 3)))) + 
+                      f(ID_year,model="rw1", hyper=list(prec = list(
+                            prior = "pc.prec",
+                            param = c(0.5 / 0.31, 0.01))))+
+                      f(ID_year2,model="iid")+
+                      f(ID_area_year,model="iid", hyper=list(prec = list(
+                            prior = "pc.prec",
+                            param = c(0.5 / 0.31, 0.01)))) 
+                    
+                            
+rape_stIntI.BYM.model = inla(formula=rape_ST_intI, family="poisson", data=up_SMR_ST, E=e_rape,
+                        control.compute=list(waic=TRUE))
+
+dowry_ST_intI = dowry ~ f(ID_area, model="bym2", graph=SMR.adj,
+                            hyper=list(prec = list(
+                            prior = "pc.prec",
+                            param = c(0.5 / 0.31, 0.01)),
+                            phi = list(
+                            prior = "pc",
+                            param = c(0.5, 2 / 3)))) + 
+                      f(ID_year,model="rw1", hyper=list(prec = list(
+                            prior = "pc.prec",
+                            param = c(0.5 / 0.31, 0.01))))+
+                      f(ID_year2,model="iid")+
+                      f(ID_area_year,model="iid", hyper=list(prec = list(
+                            prior = "pc.prec",
+                            param = c(0.5 / 0.31, 0.01)))) 
+                    
+                            
+dowry_stIntI.BYM.model = inla(formula=dowry_ST_intI, family="poisson", data=up_SMR_ST, E=e_dowry,
+                        control.compute=list(waic=TRUE))
+
+summary(rape_stIntI.BYM.model)
+summary(dowry_stIntI.BYM.model)
+```
+
+```{r eval=TRUE,echo=FALSE,include=FALSE}
+# Spatial RR's for rape
+rape_RR_stIntI.BYM = c()
+
+for(i in 1:70){
+  rape_RR_stIntI.BYM[i] = inla.emarginal(function(x) exp(x), 
+        rape_stIntI.BYM.model$marginals.random$ID_area[[i]])
+}
+
+#Posterior probabilities (for spatial RR)
+rape_RR_stIntI.BYM_marg = rape_stIntI.BYM.model$marginals.random$ID_area[1:70]
+rape_PP_stIntI.BYM = lapply(rape_RR_stIntI.BYM_marg, function(x) {1-inla.pmarginal(0,x)})
+
+#Temporal Relative risks and CI95
+rape_RR_stIntI.RW_RR = c()
+rape_RR_stIntI.RW_lo = c()
+rape_RR_stIntI.RW_hi = c()
+
+for(i in 1:14){
+  #Posterior mean
+  rape_RR_stIntI.RW_RR[i] = inla.emarginal(function(x) exp(x), 
+        rape_stIntI.BYM.model$marginals.random$ID_year[[i]])
+  #2.5% quantile 
+  rape_RR_stIntI.RW_lo[i] = inla.qmarginal(0.025,inla.tmarginal(function(x) exp(x), rape_stIntI.BYM.model$marginals.random$ID_year[[i]]))
+  #97.5% quantile 
+  rape_RR_stIntI.RW_hi[i] = inla.qmarginal(0.975, inla.tmarginal(function(x) exp(x), rape_stIntI.BYM.model$marginals.random$ID_year[[i]]))
+}
+
+rape_RR_stIntI.RW = data.frame(RR=rape_RR_stIntI.RW_RR,low=rape_RR_stIntI.RW_lo,high=rape_RR_stIntI.RW_hi)
+
+```
+
+```{r,echo=FALSE,include=FALSE}
+#Spatial random effect for dowry
+dowry_RR_stIntI.BYM = c()
+
+for(i in 1:70){
+  dowry_RR_stIntI.BYM[i] = inla.emarginal(function(x) exp(x), 
+        dowry_stIntI.BYM.model$marginals.random$ID_area[[i]])
+}
+
+#Posterior probabilities (for spatial random effect for dowry)
+dowry_RR_stIntI.BYM_marg = dowry_stIntI.BYM.model$marginals.random$ID_area[1:70]
+dowry_PP_stIntI.BYM = lapply(dowry_RR_stIntI.BYM_marg, function(x) {1-inla.pmarginal(0,x)})
+
+#Temporal Relative risks and CI95
+dowry_RR_stIntI.RW_RR = c()
+dowry_RR_stIntI.RW_lo = c()
+dowry_RR_stIntI.RW_hi = c()
+
+for(i in 1:14){
+  #Posterior mean
+  dowry_RR_stIntI.RW_RR[i] = inla.emarginal(function(x) exp(x), 
+        dowry_stIntI.BYM.model$marginals.random$ID_year[[i]])
+  #2.5% quantile 
+  dowry_RR_stIntI.RW_lo[i] = inla.qmarginal(0.025,inla.tmarginal(function(x) exp(x), dowry_stIntI.BYM.model$marginals.random$ID_year[[i]]))
+  #97.5% quantile 
+  dowry_RR_stIntI.RW_hi[i] = inla.qmarginal(0.975, inla.tmarginal(function(x) exp(x), dowry_stIntI.BYM.model$marginals.random$ID_year[[i]]))
+}
+
+dowry_RR_stIntI.RW = data.frame(RR=dowry_RR_stIntI.RW_RR,low=dowry_RR_stIntI.RW_lo,high=dowry_RR_stIntI.RW_hi)
+```
+
+```{r,echo=FALSE,include=FALSE}
+#map spatial residual rape and dowry SIRs 
+rape_resRR_PP_stIntI = data.frame(resRR=rape_RR_stIntI.BYM, 
+                       PP=unlist(rape_PP_stIntI.BYM),
+                      ID_area=SMR_Data_agg$ID_area)
+# breakpoints
+rape_resRR_PP_stIntI$resRRcat = cut(rape_resRR_PP_stIntI$resRR, breaks=c(min(rape_resRR_PP_stIntI$resRR), 
+                  0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 
+                  max(rape_resRR_PP_stIntI$resRR)),include.lowest = T)
+
+rape_resRR_PP_stIntI$PPcat = cut(rape_resRR_PP_stIntI$PP, c(0, 0.2, 0.8, 1.00), include.lowest = TRUE)
+
+rape_map_RR_ST.IntI = left_join(carto_up_sf, rape_resRR_PP_stIntI, by = c("ID_area" = "ID_area"))
+
+dowry_resRR_PP_stIntI = data.frame(resRR=dowry_RR_stIntI.BYM, 
+PP=unlist(dowry_PP_stIntI.BYM),
+ID_area=SMR_Data_agg$ID_area)
+
+# breakpoints
+dowry_resRR_PP_stIntI$resRRcat = cut(dowry_resRR_PP_stIntI$resRR, breaks=c(min(dowry_resRR_PP_stIntI$resRR), 
+                  0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 
+                  max(dowry_resRR_PP_stIntI$resRR)),include.lowest = T)
+
+dowry_resRR_PP_stIntI$PPcat = cut(dowry_resRR_PP_stIntI$PP, c(0, 0.2, 0.8, 1.00), include.lowest = TRUE)
+
+dowry_map_RR_ST.IntI = left_join(carto_up_sf, dowry_resRR_PP_stIntI, by = c("ID_area" = "ID_area"))
+```
+
+```{r,echo=FALSE,include=FALSE}
+#creates graphs 
+
+rape_plot_RR_ST_Int1 = ggplot() + geom_sf(data = rape_map_RR_ST.IntI) + aes(fill = resRRcat) +
+  theme_bw() + scale_fill_brewer(palette = "PuOr") + 
+  guides(fill=guide_legend(title="Rape RR residuals")) +  ggtitle("A    Residuals of rape RR") +
+  theme(text = element_text(size=8), 
+        legend.key.size = unit(0.5, 'cm'), #change legend key size
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), plot.title = element_text(size = 10, face = "bold")) 
+
+rape_plot_PP_ST_Int1 = ggplot() + geom_sf(data = rape_map_RR_ST.IntI) + aes(fill = PPcat) +
+  theme_bw() + scale_fill_brewer(palette = "PuOr") + 
+  guides(fill=guide_legend(title="Rape PP")) +  ggtitle("B    PP of residual rape RR's") +
+  theme(text = element_text(size=8), 
+                legend.key.size = unit(0.5, 'cm'), #change legend key size
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), plot.title = element_text(size = 10, face = "bold")) 
+
+dowry_plot_RR_ST_Int1 = ggplot() + geom_sf(data = dowry_map_RR_ST.IntI) + aes(fill = resRRcat) +
+  theme_bw() + scale_fill_brewer(palette = "PuOr") + 
+  guides(fill=guide_legend(title="Dowry RR residuals")) +  ggtitle("C    Residuals of dowry deaths RR") +
+  theme(text = element_text(size=8), 
+                legend.key.size = unit(0.5, 'cm'), #change legend key size
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), plot.title = element_text(size = 10, face = "bold")) 
+
+dowry_plot_PP_ST_Int1 = ggplot() + geom_sf(data = dowry_map_RR_ST.IntI) + aes(fill = PPcat) +
+  theme_bw() + scale_fill_brewer(palette = "PuOr") + 
+  guides(fill=guide_legend(title="Dowry deaths PP")) +  ggtitle("D    PP of residual dowry deaths RR") +
+  theme(text = element_text(size=8), 
+                legend.key.size = unit(0.5, 'cm'), #change legend key size
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), plot.title = element_text(size = 10, face = "bold")) 
+
+```
+
+```{r,echo=FALSE,fig.cap= "Figure 3: Maps of the residual relative risks (RR) for both rape (A) and dowry deaths (C), and the posterior probabilities (PP) of such residual RR's being above 1 for rape (B) and dowry deaths (D)."}
+#plots maps
+(rape_plot_RR_ST_Int1 + rape_plot_PP_ST_Int1) / (dowry_plot_RR_ST_Int1 + dowry_plot_PP_ST_Int1)
+
+```
+
+```{r,echo=FALSE}
+#plot temporal RRs
+Temp_rape = ggplot(rape_RR_stIntI.RW, aes(seq(2001,2014), RR)) + geom_line() + ggtitle("A          Temporal residual RR's for rape") + geom_ribbon(aes(ymin=low,ymax=high), alpha=0.2) + labs(x="Year") +
+    scale_x_continuous(breaks = seq(2001, 2014, by = 1), labels = seq(2001, 2014, by = 1))
+
+Temp_dowry = ggplot(dowry_RR_stIntI.RW, aes(seq(2001,2014), RR)) + geom_line() + ggtitle("B         Temporal residual RR's for dowry deaths") + geom_ribbon(aes(ymin=low,ymax=high), alpha=0.2) + labs(x="Year") +
+      scale_x_continuous(breaks = seq(2001, 2014, by = 1), labels = seq(2001, 2014, by = 1))
+
+```
+
+Figures 4A and 4B demonstrate the global temporal trend for the RR of rape and dowry deaths.
+Although a decrease is seen from 2001 - 2003, from 2003 - 2014 an upward trajectory in the temporal risk of rape and dowry deaths can be seen.
+
+```{r,echo=FALSE,fig.width=10,fig.cap="Figure 4: Plots of the residual temporal relative risks (RR) for both rape (A) and dowry deaths (B) for each year."}
+(Temp_rape + Temp_dowry)
+```
+### Discussion and conclusion
+
+This study investigated the spatio-temporal trend of rape incidence and dowry deaths within the 70 districts of Uttar Pradesh from 2001 - 2014. The implementation of a spatio-temporal model with type 1 interaction and the calculation of exceedance probabilities of the residual, spatial RR's for rape and dowry deaths revealed a spatial trend to the data, with many Western districts exhibiting a greater risk of rapes/dowry deaths compared to the average. Additionally, analysis of temporal residual RR's revealed a temporal increase in the RR of rape/dowry deaths since 2003.
+
+Neighbouring districts are likely to be more similar to each oher compared to far-away districts. As such, the unmeasured covariates such as socioeconomic status and population characteristics are likely to be shared among neighbouring districts. This ties in with a recent study by [@Lolayekar2020] whom investigated CAW at a district level between the years 1991 - 2011. However, this study used a linear regression-based approach and as such, did not utilise a Bayesian hierarchical spatio-temporal approach, that borrows strength from space and time to smooth the risks and reduce their variability [@Urdangarin2022]. 
+
+A notable limitation is the absence of covariates, which may explain some of the variation in the rape/dowry deaths RR's. In addition, although it appears that rape and dowry deaths have been increasing steadily since 2003, it may be that targeted women are more likely to come forward to report the crimes in subsequent years [@Lolayekar2020]. Considering these factors in subsequent studies is critical to understand the reasons behind different RR's across the different districts, with the potential for new laws and policy changes to target and reduce rates in districts performing worse than average. Additionally, this paper only tested type I interactions, where the unstructured spatial and temporal effects interact. However, type II, type III and type IV interactions are alternative interaction terms to be included, each specifying a different interaction between the structured and unstructured spatial and temporal random effects. Calibrating additional models with these interactions may result in a better fit to the data in terms of a lower WAIC. 
+In summary, this study analyzed spatio-temporal trends of rape incidence and dowry deaths in the districts of Uttar Pradesh, India, from 2001-2014. The study found excess risk of rape and dowry deaths in Western districts and an increase in these crimes over time since 2003. These findings can help inform policymakers in designing targeted interventions to reduce CAW in Uttar Pradesh, specific to each district. Overall, this study highlights the need for continued efforts to address the issue of CAW in India.
+
+### Supplementary material
+
+```{r}
+
+#the following code creates 4 different spatio-temporal models for rape  before comparing their WAIC values in a table, alongside the 5th model that was presented earlier in the paper.
+
+#creates simple spatio-temporal model with additive temporal component
+model1_rape <- rape ~ 1 + f(ID_area,model="bym", graph =SMR.adj) + ID_year
+mod1_rape = inla(data=up_SMR_ST,formula=model1_rape, E=e_rape, family="poisson",control.compute=list(waic=TRUE))
+
+#creates model 2 with unstructured temporal component and linear temporal term
+
+model2_rape = rape ~ 1 + f(ID_area,model="bym",
+ graph=SMR.adj) + 
+ f(ID_year2,model="iid") + 
++ ID_year
+mod2_rape = inla(data=up_SMR_ST,formula=model2_rape, E=e_rape, family="poisson",control.compute=list(waic=TRUE))
+
+#creates model 3 with bym spatial model and structured temporal component (RW1)
+model3_rape = rape ~ 1 + f(ID_area,model="bym", graph=SMR.adj) + 
++ f(ID_year,model="rw1")
+mod3_rape = inla(data=up_SMR_ST,formula=model3_rape, E=e_rape, family="poisson",control.compute=list(waic=TRUE))
+
+
+#creates model 4, structured and unstructured spatial/temporal components with no interaction
+rape_ST_noint = rape ~ f(ID_area, model="bym2", graph=SMR.adj,
+                            hyper=list(prec = list(
+                            prior = "pc.prec",
+                            param = c(0.5 / 0.31, 0.01)),
+                            phi = list(
+                            prior = "pc",
+                            param = c(0.5, 2 / 3)))) + f(ID_year,model="rw1", hyper=list(prec = list(prior = "pc.prec", param = c(0.5 / 0.31, 0.01)))) + f(ID_year2,model="iid")
+                            
+rape_stBYM_noint.model = inla(formula=rape_ST_noint, family="poisson", 
+                   data=up_SMR_ST, E=e_rape, 
+                   control.compute=list(waic=TRUE))
+```
+
+
+```{r}
+# Store the waic values for each model in a vector
+waic_values_rape <- c(mod1_rape$waic[1], mod2_rape$waic[1], mod3_rape$waic[1], rape_stBYM_noint.model$waic[1],rape_stIntI.BYM.model$waic[1])
+
+# Create a table with WAIC values 
+
+waic_table_rape <- matrix(waic_values_rape, nrow = 1, ncol = 5, byrow = TRUE)
+colnames(waic_table_rape) <- c("Model 1", "Model 2", "Model 3", "Model 4","Model 5")
+rownames(waic_table_rape) <- "WAIC"
+waic_table_rape
+```
+Here, Model 1 represents a spatial BYM model with a temporal fixed effect. Model 2 represents a spatial BYM model with a temporal fixed effect and temporally unstructured random effect modeled as $\psi_t$ where $\psi_t \sim N(0, \sigma^2_{\psi})$. Model 3 assumes the space-time variation is captured by a superimposition of the BYM2 spatial model and structured time trend $\gamma_t$ where $\gamma_t \sim \text{RW}(1)$. Model 4 adds an additional unstructured temporal random effect, $\psi_t$ as earlier defined. Model 5 is an extension of model 4 with a type 1 interaction between space-time, $\delta_{it}$, where $\delta_{it} \sim \hbox{Normal}(0, \sigma^2_{\delta})$.
+```{r}
+
+#repeats code above but for dowry deaths
+
+model1_dowry <- dowry ~ 1 + f(ID_area,model="bym", graph =SMR.adj) + ID_year
+mod1_dowry = inla(data=data,formula=model1_dowry, E=e_dowry, family="poisson",control.compute=list(dic=TRUE, waic=TRUE))
+
+#creates model 2 with unstructured temporal component and linear temporal term
+
+model2_dowry = dowry ~ 1 + f(ID_area,model="bym",
+ graph=SMR.adj) + 
+ f(ID_year2,model="iid") + 
++ ID_year
+mod2_dowry = inla(data=up_SMR_ST,formula=model2_dowry, E=e_dowry, family="poisson",control.compute=list(waic=TRUE))
+
+#creates model 3 with bym spatial model and structured temporal component (RW1)
+model3_dowry = dowry ~ 1 + f(ID_area,model="bym", graph=SMR.adj) + 
++ f(ID_year,model="rw1")
+mod3_dowry = inla(data=up_SMR_ST,formula=model3_dowry, E=e_dowry, family="poisson",control.compute=list(waic=TRUE))
+
+
+dowry_ST_noint = dowry ~ f(ID_area, model="bym2", graph=SMR.adj,
+                            hyper=list(prec = list(
+                            prior = "pc.prec",
+                            param = c(0.5 / 0.31, 0.01)),
+                            phi = list(
+                            prior = "pc",
+                            param = c(0.5, 2 / 3)))) + f(ID_year,model="rw1", hyper=list(prec = list(
+                            prior = "pc.prec",
+                            param = c(0.5 / 0.31, 0.01)))) + f(ID_year2,model="iid")
+                            
+dowry_stBYM.model = inla(formula=dowry_ST_noint, family="poisson", 
+                   data=up_SMR_ST, E=e_dowry, 
+                   control.compute=list(waic=TRUE))
+```
+
+```{r,fig.caption="Supplementary Table 2. 5 different spatio-temporal models were evaluated to model relative risk of dowry deaths, the model with the lowest WAIC value was taken forward for analysis in the current paper."}
+# Store the waic values for each model in a vector
+waic_values_dowry <- c(mod1_dowry$waic[1], mod2_dowry$waic[1], mod3_dowry$waic[1], dowry_stBYM.model$waic[1],dowry_stIntI.BYM.model$waic[1])
+
+# Create a table with WAIC values 
+
+waic_table_dowry <- matrix(waic_values_dowry, nrow = 1, ncol = 5, byrow = TRUE)
+colnames(waic_table_dowry) <- c("Model 1", "Model 2", "Model 3", "Model 4","Model 5")
+rownames(waic_table_dowry) <- "WAIC"
+waic_table_dowry
+```
+```{r,fig.cap="Supplementary Figure 1. Line graph detailing the different SMR values for rape for each district for each year, each line and colour represents one district."}
+
+#create plot of raw rape smr values for each district over time
+smr_rape_plot_time <- ggplot(data, aes(x = year, y = smr_rape, 
+                   group = dist, color = dist)) + ggtitle("Raw SMR values for rape incidence for each district over time") + geom_line() + geom_point(size = 2) + theme_bw()
+
+smr_rape_plot_time <- smr_rape_plot_time + theme(legend.position = "none")
+smr_rape_plot_time
+```
+
+```{r,fig.cap="Supplementary Figure 2. Line graph detailing the different SIR values for dowry deaths for each district for each year, each line and colour represents one district."}
+
+#create plot of raw dowry deaths sir values for each district over time
+
+smr_dowry_plot_time <- ggplot(data, aes(x = year, y = smr_dowry, 
+                   group = dist, color = dist)) +
+  geom_line() + geom_point(size = 2) + theme_bw() + ggtitle("Raw SIR values for dowry deaths for each district over time")
+
+smr_dowry_plot_time <- smr_dowry_plot_time + theme(legend.position = "none")
+smr_dowry_plot_time
+```
+
+### References
